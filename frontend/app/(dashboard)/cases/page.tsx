@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Microscope } from "lucide-react"
+import { BrainCircuit, CheckCircle2, Microscope, UploadCloud } from "lucide-react"
 
 import { getCases } from "@/lib/cases"
 import type { Case, Prediction, ReviewStatus } from "@/lib/types"
@@ -146,15 +146,32 @@ export default function CasesPage() {
           ))}
         </div>
       ) : (
-        <Card className="flex min-h-[360px] flex-col items-center justify-center gap-5 p-8 text-center">
+        <Card className="flex min-h-[420px] flex-col items-center justify-center gap-6 p-8 text-center">
           <div className="flex size-20 items-center justify-center rounded-3xl border border-border bg-secondary text-primary">
             <Microscope />
           </div>
           <div className="flex flex-col gap-2">
             <h2 className="text-xl font-semibold text-foreground">No cases found</h2>
             <p className="text-sm text-muted-foreground">
-              Adjust filters or submit a new diagnostic case.
+              Submit a case or reset filters to populate this review queue.
             </p>
+          </div>
+          <div className="grid w-full max-w-2xl grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-border bg-secondary/40 p-4">
+              <UploadCloud className="mx-auto mb-3 text-primary" />
+              <p className="text-sm font-medium text-foreground">Upload</p>
+              <p className="mt-1 text-xs text-muted-foreground">JPEG or PNG RBC image</p>
+            </div>
+            <div className="rounded-xl border border-border bg-secondary/40 p-4">
+              <BrainCircuit className="mx-auto mb-3 text-primary" />
+              <p className="text-sm font-medium text-foreground">Predict</p>
+              <p className="mt-1 text-xs text-muted-foreground">CNN confidence and heatmap</p>
+            </div>
+            <div className="rounded-xl border border-border bg-secondary/40 p-4">
+              <CheckCircle2 className="mx-auto mb-3 text-primary" />
+              <p className="text-sm font-medium text-foreground">Review</p>
+              <p className="mt-1 text-xs text-muted-foreground">Validate or reject case</p>
+            </div>
           </div>
           <Button asChild>
             <Link href="/upload">Upload Image</Link>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { BrainCircuit, FlaskConical, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
 import { runPrediction } from "@/lib/api"
@@ -20,6 +21,22 @@ export default function UploadPage() {
   const [patientRef, setPatientRef] = useState("")
   const [inlineError, setInlineError] = useState<string | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+
+  async function loadSample(sample: { path: string; filename: string }) {
+    try {
+      const response = await fetch(sample.path)
+      if (!response.ok) {
+        throw new Error("Sample image is unavailable.")
+      }
+      const blob = await response.blob()
+      const sampleFile = new File([blob], sample.filename, { type: blob.type || "image/png" })
+      setInlineError(null)
+      setFile(sampleFile)
+      toast.success("Sample RBC image loaded.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load sample image.")
+    }
+  }
 
   useEffect(() => {
     if (!file) {
@@ -71,9 +88,75 @@ export default function UploadPage() {
         <p className="text-muted-foreground">Submit an RBC image for malaria prediction.</p>
       </header>
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="border-blue-400/30 bg-blue-500/10">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-blue-400/30 bg-blue-500/10 text-blue-200">
+              <BrainCircuit />
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-sm font-semibold text-foreground">Local CNN ready</p>
+              <p className="text-sm text-muted-foreground">No Supabase or server required.</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-400/30 bg-emerald-500/10">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-200">
+              <ShieldCheck />
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-sm font-semibold text-foreground">Case review active</p>
+              <p className="text-sm text-muted-foreground">Validate or reject after diagnosis.</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-amber-400/30 bg-amber-500/10">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-500/10 text-amber-200">
+              <FlaskConical />
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-sm font-semibold text-foreground">Sample cells included</p>
+              <p className="text-sm text-muted-foreground">Load one below and run diagnosis.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>New Diagnostic Case</CardTitle>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <CardTitle>New Diagnostic Case</CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  loadSample({
+                    path: "/samples/infected-cell.png",
+                    filename: "sample-infected-rbc.png",
+                  })
+                }
+              >
+                Use infected sample
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  loadSample({
+                    path: "/samples/healthy-cell.png",
+                    filename: "sample-healthy-rbc.png",
+                  })
+                }
+              >
+                Use healthy sample
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <UploadZone
