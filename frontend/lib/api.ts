@@ -1,5 +1,6 @@
 import axios from "axios"
 
+import { runLocalCnnPrediction } from "@/lib/local-cnn"
 import type { PredictionResult } from "@/lib/types"
 
 export async function runPrediction(file: File): Promise<PredictionResult> {
@@ -13,17 +14,16 @@ export async function runPrediction(file: File): Promise<PredictionResult> {
   if (shouldTryFastApi) {
     try {
       return await runFastApiPrediction(file, fastApiUrl)
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const detail = error.response?.data?.detail
-        if (detail) {
-          throw new Error(String(detail))
-        }
-      }
+    } catch {
+      // The deployed app is self-contained. A configured FastAPI service is optional.
     }
   }
 
-  return runDemoPrediction(file)
+  try {
+    return await runLocalCnnPrediction(file)
+  } catch {
+    return runDemoPrediction(file)
+  }
 }
 
 async function runFastApiPrediction(file: File, baseURL: string): Promise<PredictionResult> {
@@ -113,8 +113,16 @@ function makeDemoOverlay(
 function loadImage(file: File) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image()
-    image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error("Failed to read image."))
-    image.src = URL.createObjectURL(file)
+    const objectUrl = URL.createObjectURL(file)
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(image)
+    }
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error("Failed to read image."))
+    }
+    image.src = objectUrl
   })
 }

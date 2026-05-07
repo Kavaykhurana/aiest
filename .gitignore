@@ -12,3 +12,4 @@ dist/
 build/
 cell_images/
 *.pt
+!backend/model/malaria_model.pt
