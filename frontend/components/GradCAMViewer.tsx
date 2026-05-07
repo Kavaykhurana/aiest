@@ -62,7 +62,9 @@ export function GradCAMViewer({ imageUrl, gradcamUrl, prediction }: GradCAMViewe
             Grad-CAM highlights the cell regions that most influenced the model&apos;s decision.
           </p>
           {!gradcamUrl ? (
-            <p className="font-mono text-xs text-amber-200">Heatmap unavailable</p>
+            <p className="font-mono text-xs text-amber-700 dark:text-amber-200">
+              Heatmap unavailable
+            </p>
           ) : null}
         </div>
       </div>

@@ -1,0 +1,46 @@
+export const notebookResults = {
+  source: "FINAL_malaria_rbc_cnn_project.ipynb",
+  runMode: "FAST_RUN",
+  workingImages: 1000,
+  testImages: 150,
+  threshold: 0.5,
+  figureOutputs: 12,
+  bestValidationAuc: 0.9918,
+  finalValidation: {
+    loss: 0.3041,
+    accuracy: 0.9667,
+    precision: 0.9605,
+    recall: 0.9733,
+    auc: 0.9918,
+  },
+  test: {
+    accuracy: 0.933333,
+    precision: 0.922078,
+    recall: 0.946667,
+    f1Score: 0.934211,
+    rocAuc: 0.982578,
+    averagePrecision: 0.985621,
+  },
+  classes: [
+    {
+      label: "Healthy",
+      precision: 0.95,
+      recall: 0.92,
+      f1Score: 0.93,
+      support: 75,
+    },
+    {
+      label: "Malaria-Infected",
+      precision: 0.92,
+      recall: 0.95,
+      f1Score: 0.93,
+      support: 75,
+    },
+  ],
+  trainingHistory: [
+    { epoch: 1, accuracy: 0.6057, valAccuracy: 0.6, valAuc: 0.6843 },
+    { epoch: 2, accuracy: 0.5986, valAccuracy: 0.6, valAuc: 0.7273 },
+    { epoch: 3, accuracy: 0.6629, valAccuracy: 0.7933, valAuc: 0.8651 },
+    { epoch: 4, accuracy: 0.7971, valAccuracy: 0.9667, valAuc: 0.9918 },
+  ],
+}

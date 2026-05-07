@@ -26,8 +26,23 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${ibmPlexMono.variable}`}>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                try {
+                  var theme = window.localStorage.getItem("cellscan-theme") || "dark";
+                  document.documentElement.classList.toggle("dark", theme === "dark");
+                  document.documentElement.style.colorScheme = theme;
+                } catch (_) {
+                  document.documentElement.classList.add("dark");
+                }
+              })();
+            `,
+          }}
+        />
         {children}
         <Toaster />
       </body>

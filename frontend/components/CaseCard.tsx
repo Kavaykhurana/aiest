@@ -10,9 +10,9 @@ interface CaseCardProps {
 }
 
 const statusStyles: Record<ReviewStatus, string> = {
-  pending: "border-amber-300/40 bg-amber-500/15 text-amber-200",
-  validated: "border-emerald-300/40 bg-emerald-500/15 text-emerald-200",
-  rejected: "border-red-300/40 bg-red-500/15 text-red-200",
+  pending: "border-amber-300/40 bg-amber-500/15 text-amber-700 dark:text-amber-200",
+  validated: "border-emerald-300/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-200",
+  rejected: "border-red-300/40 bg-red-500/15 text-red-700 dark:text-red-200",
 }
 
 export function CaseCard({ case: cellCase }: CaseCardProps) {

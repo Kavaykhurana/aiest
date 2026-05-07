@@ -89,9 +89,9 @@ export default function UploadPage() {
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="border-blue-400/30 bg-blue-500/10">
+        <Card className="border-l-4 border-l-blue-500">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-blue-400/30 bg-blue-500/10 text-blue-200">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-secondary text-blue-700 dark:text-blue-200">
               <BrainCircuit />
             </div>
             <div className="min-w-0">
@@ -101,9 +101,9 @@ export default function UploadPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-400/30 bg-emerald-500/10">
+        <Card className="border-l-4 border-l-emerald-500">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-200">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-secondary text-emerald-700 dark:text-emerald-200">
               <ShieldCheck />
             </div>
             <div className="min-w-0">
@@ -113,9 +113,9 @@ export default function UploadPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-amber-400/30 bg-amber-500/10">
+        <Card className="border-l-4 border-l-amber-500">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-500/10 text-amber-200">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-secondary text-amber-700 dark:text-amber-200">
               <FlaskConical />
             </div>
             <div className="min-w-0">

@@ -4,15 +4,16 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   Activity,
+  BarChart3,
   ArrowRight,
-  BrainCircuit,
-  Database,
   FolderOpen,
+  FlaskConical,
   UploadCloud,
 } from "lucide-react"
 
 import { StatsGrid, type DashboardStats } from "@/components/StatsGrid"
 import { getCases } from "@/lib/cases"
+import { notebookResults } from "@/lib/model-results"
 import type { Case } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -38,66 +39,45 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-mono text-3xl font-semibold tracking-normal text-foreground">
-          Dashboard
-        </h1>
-        <p className="text-muted-foreground">Review activity and diagnostic outcomes.</p>
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-2">
+          <h1 className="font-mono text-3xl font-semibold tracking-normal text-foreground">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground">Case review, model validation, and worklist status.</p>
+        </div>
+        <Button asChild>
+          <Link href="/upload">
+            New case <ArrowRight className="size-4" />
+          </Link>
+        </Button>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Card className="border-blue-400/30 bg-blue-500/10">
-          <CardHeader className="flex flex-row items-center justify-between gap-4 p-5 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Diagnostic Engine
-            </CardTitle>
-            <BrainCircuit className="text-primary" />
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 p-5 pt-0">
-            <p className="font-mono text-3xl font-semibold text-foreground">Ready</p>
-            <div className="flex flex-wrap gap-2 text-xs font-medium">
-              <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-emerald-200">
-                CNN loaded in browser
-              </span>
-              <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-blue-200">
-                Grad-CAM enabled
-              </span>
+      <Card className="p-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-lg border border-border bg-secondary text-primary">
+              <FlaskConical />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4 p-5 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Case Store
-            </CardTitle>
-            <Database className="text-primary" />
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 p-5 pt-0">
-            <p className="font-mono text-3xl font-semibold text-foreground">Local</p>
-            <p className="text-sm text-muted-foreground">
-              Cases stay in this browser session and appear instantly across the dashboard.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-emerald-400/30 bg-emerald-500/10">
-          <CardHeader className="flex flex-row items-center justify-between gap-4 p-5 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Next Case
-            </CardTitle>
-            <UploadCloud className="text-emerald-200" />
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4 p-5 pt-0">
-            <p className="font-mono text-3xl font-semibold text-foreground">Upload</p>
-            <Button asChild>
-              <Link href="/upload">
-                New diagnostic <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">Notebook validation set</p>
+              <p className="text-sm text-muted-foreground">
+                {notebookResults.workingImages.toLocaleString()} images used, {notebookResults.testImages} held out for testing
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            <InlineMetric label="Accuracy" value={formatPercent(notebookResults.test.accuracy)} />
+            <InlineMetric label="ROC AUC" value={notebookResults.test.rocAuc.toFixed(3)} />
+            <InlineMetric label="Recall" value={formatPercent(notebookResults.test.recall)} />
+          </div>
+          <Button asChild variant="outline" className="justify-self-start lg:justify-self-end">
+            <Link href="/upload">
+              Run diagnosis <UploadCloud className="size-4" />
+            </Link>
+          </Button>
+        </div>
+      </Card>
 
       <StatsGrid stats={stats} />
 
@@ -146,32 +126,38 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Review Coverage</CardTitle>
+            <div className="flex items-center justify-between gap-4">
+              <CardTitle>Notebook Results</CardTitle>
+              <BarChart3 className="text-primary" />
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="font-mono text-4xl font-semibold text-foreground">
-                  {reviewProgress}%
-                </p>
-                <p className="text-sm text-muted-foreground">validated or rejected</p>
-              </div>
-              <Activity className="text-primary" />
+            <div className="grid grid-cols-2 gap-3">
+              <ResultMetric label="Precision" value={formatPercent(notebookResults.test.precision)} />
+              <ResultMetric label="F1-score" value={notebookResults.test.f1Score.toFixed(3)} />
+              <ResultMetric label="Avg precision" value={notebookResults.test.averagePrecision.toFixed(3)} />
+              <ResultMetric label="Best val AUC" value={notebookResults.bestValidationAuc.toFixed(3)} />
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${reviewProgress}%` }}
-              />
+            <div className="rounded-lg border border-border bg-secondary/40 p-3">
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Review coverage</span>
+                <span className="font-mono text-foreground">{reviewProgress}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-background">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${reviewProgress}%` }}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <span className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-2 py-2 text-amber-200">
+              <span className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-2 py-2 text-amber-700 dark:text-amber-200">
                 {stats.pending} pending
               </span>
-              <span className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-2 py-2 text-emerald-200">
+              <span className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-2 py-2 text-emerald-700 dark:text-emerald-200">
                 {stats.validated} valid
               </span>
-              <span className="rounded-lg border border-red-400/30 bg-red-500/10 px-2 py-2 text-red-200">
+              <span className="rounded-lg border border-red-400/30 bg-red-500/10 px-2 py-2 text-red-700 dark:text-red-200">
                 {stats.rejected} rejected
               </span>
             </div>
@@ -180,6 +166,28 @@ export default function DashboardPage() {
       </div>
     </div>
   )
+}
+
+function InlineMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-secondary/50 px-3 py-2">
+      <p className="font-mono text-base font-semibold text-foreground">{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
+  )
+}
+
+function ResultMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-secondary/40 p-3">
+      <p className="font-mono text-xl font-semibold text-foreground">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+    </div>
+  )
+}
+
+function formatPercent(value: number) {
+  return `${(value * 100).toFixed(1)}%`
 }
 
 function formatDate(value: string) {

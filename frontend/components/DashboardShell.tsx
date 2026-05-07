@@ -19,6 +19,7 @@ import { CURRENT_DIAGNOSTIC_VERSION, getCases } from "@/lib/cases"
 import type { Case } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
+import { ThemeToggle } from "@/components/ThemeToggle"
 
 interface DashboardShellProps {
   children: ReactNode
@@ -99,7 +100,7 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           <div className="flex flex-col gap-3">
-            <div className="rounded-xl border border-border bg-card/70 p-4 shadow-lg">
+            <div className="rounded-xl border border-border bg-card/80 p-4 shadow-clinical">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <p className="font-mono text-xs font-semibold uppercase tracking-normal text-muted-foreground">
@@ -109,7 +110,7 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
                     {sidebarStats.total}
                   </p>
                 </div>
-                <div className="flex size-10 items-center justify-center rounded-lg border border-blue-400/30 bg-blue-500/10 text-blue-200">
+                <div className="flex size-10 items-center justify-center rounded-lg border border-blue-400/30 bg-blue-500/10 text-blue-700 dark:text-blue-200">
                   <Activity className="size-5" />
                 </div>
               </div>
@@ -119,9 +120,9 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
               </div>
             </div>
 
-            <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-4 shadow-lg">
+            <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-4 shadow-clinical">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-500/10 text-emerald-200">
+                <div className="flex size-10 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
                   <BrainCircuit className="size-5" />
                 </div>
                 <div className="min-w-0">
@@ -139,7 +140,7 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-card/70 p-4 shadow-lg">
+            <div className="rounded-xl border border-border bg-card/80 p-4 shadow-clinical">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="font-mono text-xs font-semibold uppercase tracking-normal text-muted-foreground">
                   Latest Case
@@ -156,8 +157,8 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
                       className={cn(
                         "rounded-full border px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-normal",
                         sidebarStats.latest.prediction === "infected"
-                          ? "border-red-300/40 bg-red-500/15 text-red-200"
-                          : "border-emerald-300/40 bg-emerald-500/15 text-emerald-200",
+                          ? "border-red-300/40 bg-red-500/15 text-red-700 dark:text-red-200"
+                          : "border-emerald-300/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-200",
                       )}
                     >
                       {sidebarStats.latest.prediction}
@@ -182,13 +183,13 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
                 icon={CheckCircle2}
                 label="Completed"
                 value={sidebarStats.completed}
-                className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+                className="border-emerald-400/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
               />
               <MiniStatus
                 icon={ShieldAlert}
                 label="Risk"
                 value={sidebarStats.infected}
-                className="border-red-400/20 bg-red-500/10 text-red-200"
+                className="border-red-400/20 bg-red-500/10 text-red-700 dark:text-red-200"
               />
             </div>
           </div>
@@ -204,6 +205,9 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <div className="fixed right-5 top-5 z-50 hidden md:block">
+          <ThemeToggle />
+        </div>
         <header className="sticky top-0 z-20 border-b border-border bg-sidebar/95 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-2">
@@ -212,6 +216,7 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
               </div>
               <span className="font-mono font-semibold tracking-normal">CellScan</span>
             </Link>
+            <ThemeToggle />
           </div>
           <nav className="mt-3 grid grid-cols-3 gap-2">
             {navItems.map((item) => {
@@ -235,7 +240,7 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
             })}
           </nav>
         </header>
-        <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
+        <main className="min-w-0 flex-1 p-4 md:p-8 md:pr-20">{children}</main>
       </div>
     </div>
   )
@@ -252,8 +257,8 @@ function MetricTile({
 }) {
   const toneClass =
     tone === "amber"
-      ? "border-amber-400/20 bg-amber-500/10 text-amber-200"
-      : "border-red-400/20 bg-red-500/10 text-red-200"
+      ? "border-amber-400/20 bg-amber-500/10 text-amber-700 dark:text-amber-200"
+      : "border-red-400/20 bg-red-500/10 text-red-700 dark:text-red-200"
 
   return (
     <div className={cn("rounded-lg border p-3", toneClass)}>
@@ -284,7 +289,7 @@ function MiniStatus({
   className: string
 }) {
   return (
-    <div className={cn("rounded-xl border p-3 shadow-lg", className)}>
+    <div className={cn("rounded-xl border p-3 shadow-clinical", className)}>
       <Icon className="mb-3 size-4" />
       <p className="font-mono text-xl font-semibold tracking-normal text-foreground">
         {value}

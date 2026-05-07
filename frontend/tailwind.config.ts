@@ -61,7 +61,7 @@ const config = {
         mono: ["var(--font-ibm-plex-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {
-        clinical: "0 18px 50px rgba(0, 0, 0, 0.24)",
+        clinical: "var(--shadow-clinical)",
       },
     },
   },

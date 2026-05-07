@@ -30,42 +30,42 @@ export function StatsGrid({ stats }: StatsGridProps) {
       value: stats.total,
       subLabel: "Submitted diagnostics",
       icon: Files,
-      className: "border-blue-400/30 bg-blue-500/10",
+      accentClassName: "border-l-blue-500",
     },
     {
       label: "Infected",
       value: stats.infected,
       subLabel: `${percentage(stats.infected, stats.total)}% of total`,
       icon: ShieldAlert,
-      className: "border-red-400/30 bg-red-500/10",
+      accentClassName: "border-l-red-500",
     },
     {
       label: "Healthy",
       value: stats.healthy,
       subLabel: `${percentage(stats.healthy, stats.total)}% of total`,
       icon: HeartPulse,
-      className: "border-green-400/30 bg-green-500/10",
+      accentClassName: "border-l-green-500",
     },
     {
       label: "Pending Review",
       value: stats.pending,
       subLabel: "Awaiting validation",
       icon: Clock3,
-      className: "border-amber-400/30 bg-amber-500/10",
+      accentClassName: "border-l-amber-500",
     },
     {
       label: "Validated",
       value: stats.validated,
       subLabel: "Accepted predictions",
       icon: CheckCircle2,
-      className: "border-emerald-400/30 bg-emerald-500/10",
+      accentClassName: "border-l-emerald-500",
     },
     {
       label: "Rejected",
       value: stats.rejected,
       subLabel: "Overruled predictions",
       icon: XCircle,
-      className: "border-red-400/30 bg-red-500/10",
+      accentClassName: "border-l-red-500",
     },
   ]
 
@@ -75,17 +75,20 @@ export function StatsGrid({ stats }: StatsGridProps) {
         const Icon = card.icon
 
         return (
-          <Card key={card.label} className={cn("overflow-hidden", card.className)}>
+          <Card
+            key={card.label}
+            className={cn("overflow-hidden border-l-4", card.accentClassName)}
+          >
             <CardHeader className="flex flex-row items-center justify-between gap-4 p-5 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {card.label}
               </CardTitle>
-              <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-background/50 text-foreground">
-                <Icon />
+              <div className="text-muted-foreground">
+                <Icon className="size-5" />
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-1 p-5 pt-0">
-              <p className="font-mono text-4xl font-semibold tracking-normal text-foreground">
+              <p className="font-mono text-3xl font-semibold tracking-normal text-foreground">
                 {card.value}
               </p>
               <p className="text-sm text-muted-foreground">{card.subLabel}</p>
