@@ -113,4 +113,5 @@ export function updateCaseReview(input: {
 
 function saveCases(cases: Case[]) {
   window.localStorage.setItem(CASES_KEY, JSON.stringify(cases))
+  window.dispatchEvent(new Event("cellscan:cases-changed"))
 }
