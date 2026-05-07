@@ -5,6 +5,8 @@ export interface Case {
   id: string
   reviewer_id: string
   patient_ref: string | null
+  slide_id?: string | null
+  image_source?: string | null
   image_url: string
   gradcam_url: string | null
   prediction: Prediction

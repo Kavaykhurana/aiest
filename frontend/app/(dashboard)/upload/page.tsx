@@ -19,6 +19,8 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [patientRef, setPatientRef] = useState("")
+  const [slideId, setSlideId] = useState("")
+  const [imageSource, setImageSource] = useState("")
   const [inlineError, setInlineError] = useState<string | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
 
@@ -66,6 +68,8 @@ export default function UploadPage() {
       const newCase = createCase({
         reviewerId: getReviewerId(),
         patientRef: patientRef.trim() || null,
+        slideId: slideId.trim() || null,
+        imageSource: imageSource.trim() || null,
         imageUrl,
         gradcamUrl,
         predictionResult,
@@ -168,14 +172,34 @@ export default function UploadPage() {
             onFileAccepted={setFile}
           />
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="patient-ref">Patient Reference / ID (optional)</Label>
-            <Input
-              id="patient-ref"
-              value={patientRef}
-              onChange={(event) => setPatientRef(event.target.value)}
-              placeholder="MRN-2026-001"
-            />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="patient-ref">Patient Reference / ID</Label>
+              <Input
+                id="patient-ref"
+                value={patientRef}
+                onChange={(event) => setPatientRef(event.target.value)}
+                placeholder="MRN-2026-001"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="slide-id">Slide ID</Label>
+              <Input
+                id="slide-id"
+                value={slideId}
+                onChange={(event) => setSlideId(event.target.value)}
+                placeholder="SLIDE-A14"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="image-source">Image source</Label>
+              <Input
+                id="image-source"
+                value={imageSource}
+                onChange={(event) => setImageSource(event.target.value)}
+                placeholder="Lab microscope"
+              />
+            </div>
           </div>
 
           <Button type="button" size="lg" disabled={!file || isAnalyzing} onClick={handleSubmit}>

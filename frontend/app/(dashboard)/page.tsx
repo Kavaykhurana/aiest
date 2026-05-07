@@ -4,16 +4,19 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   Activity,
-  BarChart3,
   ArrowRight,
+  BarChart3,
   FolderOpen,
   FlaskConical,
   UploadCloud,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { StatsGrid, type DashboardStats } from "@/components/StatsGrid"
-import { getCases } from "@/lib/cases"
+import { runPrediction } from "@/lib/api"
+import { clearCases, createCase, formatCaseCode, getCases } from "@/lib/cases"
 import { notebookResults } from "@/lib/model-results"
+import { getReviewerId } from "@/lib/reviewer"
 import type { Case } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,10 +24,56 @@ import { PredictionBadge } from "@/components/PredictionBadge"
 
 export default function DashboardPage() {
   const [cases, setCases] = useState<Case[]>([])
+  const [isLoadingDemo, setIsLoadingDemo] = useState(false)
 
   useEffect(() => {
-    setCases(getCases())
+    const syncCases = () => setCases(getCases())
+    syncCases()
+    window.addEventListener("cellscan:cases-changed", syncCases)
+    window.addEventListener("storage", syncCases)
+    return () => {
+      window.removeEventListener("cellscan:cases-changed", syncCases)
+      window.removeEventListener("storage", syncCases)
+    }
   }, [])
+
+  async function loadDemoCases() {
+    setIsLoadingDemo(true)
+
+    try {
+      clearCases()
+      for (const sample of demoSamples) {
+        const response = await fetch(sample.path)
+        if (!response.ok) {
+          throw new Error("Sample image is unavailable.")
+        }
+        const blob = await response.blob()
+        const file = new File([blob], sample.filename, { type: blob.type || "image/png" })
+        const predictionResult = await runPrediction(file)
+        createCase({
+          reviewerId: getReviewerId(),
+          patientRef: sample.patientRef,
+          slideId: sample.slideId,
+          imageSource: sample.imageSource,
+          imageUrl: await fileToDataUrl(file),
+          gradcamUrl: predictionResult.gradcam_base64
+            ? `data:image/png;base64,${predictionResult.gradcam_base64}`
+            : null,
+          predictionResult,
+        })
+      }
+      toast.success("Demo cases loaded.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load demo cases.")
+    } finally {
+      setIsLoadingDemo(false)
+    }
+  }
+
+  function clearCaseStore() {
+    clearCases()
+    toast.success("Local cases cleared.")
+  }
 
   const stats: DashboardStats = {
     total: cases.length,
@@ -46,11 +95,19 @@ export default function DashboardPage() {
           </h1>
           <p className="text-muted-foreground">Case review, model validation, and worklist status.</p>
         </div>
-        <Button asChild>
-          <Link href="/upload">
-            New case <ArrowRight className="size-4" />
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={loadDemoCases} disabled={isLoadingDemo}>
+            {isLoadingDemo ? "Loading demo..." : "Load demo cases"}
+          </Button>
+          <Button type="button" variant="outline" onClick={clearCaseStore} disabled={cases.length === 0}>
+            Clear local cases
+          </Button>
+          <Button asChild>
+            <Link href="/upload">
+              New case <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
       </header>
 
       <Card className="p-4">
@@ -100,9 +157,11 @@ export default function DashboardPage() {
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
-                      {cellCase.patient_ref || cellCase.id}
+                      {cellCase.patient_ref || formatCaseCode(cellCase.id)}
                     </p>
-                    <p className="text-xs text-muted-foreground">{formatDate(cellCase.created_at)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatCaseCode(cellCase.id)} · {formatDate(cellCase.created_at)}
+                    </p>
                   </div>
                   <PredictionBadge prediction={cellCase.prediction} confidence={cellCase.confidence} />
                 </Link>
@@ -188,6 +247,32 @@ function ResultMetric({ label, value }: { label: string; value: string }) {
 
 function formatPercent(value: number) {
   return `${(value * 100).toFixed(1)}%`
+}
+
+const demoSamples = [
+  {
+    path: "/samples/infected-cell.png",
+    filename: "sample-infected-rbc.png",
+    patientRef: "DEMO-INF-001",
+    slideId: "PARASITIZED-A",
+    imageSource: "NIH malaria sample set",
+  },
+  {
+    path: "/samples/healthy-cell.png",
+    filename: "sample-healthy-rbc.png",
+    patientRef: "DEMO-HEALTHY-001",
+    slideId: "UNINFECTED-B",
+    imageSource: "NIH malaria sample set",
+  },
+]
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error("Failed to read image."))
+    reader.readAsDataURL(file)
+  })
 }
 
 function formatDate(value: string) {

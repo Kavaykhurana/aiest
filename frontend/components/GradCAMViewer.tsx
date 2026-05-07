@@ -12,10 +12,11 @@ interface GradCAMViewerProps {
 }
 
 export function GradCAMViewer({ imageUrl, gradcamUrl, prediction }: GradCAMViewerProps) {
-  const [mode, setMode] = useState<"original" | "gradcam">("original")
+  const [mode, setMode] = useState<"original" | "gradcam" | "compare">("original")
+  const [opacity, setOpacity] = useState(70)
 
   useEffect(() => {
-    if (!gradcamUrl && mode === "gradcam") {
+    if (!gradcamUrl && mode !== "original") {
       setMode("original")
     }
   }, [gradcamUrl, mode])
@@ -54,7 +55,20 @@ export function GradCAMViewer({ imageUrl, gradcamUrl, prediction }: GradCAMViewe
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            Grad-CAM Overlay
+            Overlay
+          </button>
+          <button
+            type="button"
+            onClick={() => gradcamUrl && setMode("compare")}
+            disabled={!gradcamUrl}
+            className={cn(
+              "rounded-full px-4 py-2 font-mono text-xs font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-40",
+              mode === "compare"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Side by side
           </button>
         </div>
         <div className="flex flex-col gap-1">
@@ -69,26 +83,66 @@ export function GradCAMViewer({ imageUrl, gradcamUrl, prediction }: GradCAMViewe
         </div>
       </div>
 
-      <div className="relative aspect-square overflow-hidden rounded-lg border border-border bg-background">
-        <img
-          src={imageUrl}
-          alt="Original red blood cell"
-          className={cn(
-            "absolute inset-0 size-full object-contain transition-opacity duration-500",
-            mode === "original" ? "opacity-100" : "opacity-0",
-          )}
-        />
-        {gradcamUrl ? (
+      {mode === "gradcam" && gradcamUrl ? (
+        <label className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
+          Overlay opacity
+          <input
+            type="range"
+            min={20}
+            max={100}
+            value={opacity}
+            onChange={(event) => setOpacity(Number(event.target.value))}
+            className="w-40 accent-primary"
+          />
+          <span className="font-mono text-foreground">{opacity}%</span>
+        </label>
+      ) : null}
+
+      {mode === "compare" && gradcamUrl ? (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <ImageFrame src={imageUrl} alt="Original red blood cell" label="Original" />
+          <ImageFrame src={gradcamUrl} alt="Grad-CAM overlay" label="Grad-CAM" />
+        </div>
+      ) : (
+        <div className="relative aspect-square overflow-hidden rounded-lg border border-border bg-background">
           <img
-            src={gradcamUrl}
-            alt="Grad-CAM overlay"
+            src={imageUrl}
+            alt="Original red blood cell"
             className={cn(
               "absolute inset-0 size-full object-contain transition-opacity duration-500",
-              mode === "gradcam" ? "opacity-100" : "opacity-0",
+              mode === "original" || mode === "gradcam" ? "opacity-100" : "opacity-0",
             )}
           />
-        ) : null}
-      </div>
+          {gradcamUrl ? (
+            <img
+              src={gradcamUrl}
+              alt="Grad-CAM overlay"
+              className={cn(
+                "absolute inset-0 size-full object-contain transition-opacity duration-500",
+                mode === "gradcam" ? "opacity-100" : "opacity-0",
+              )}
+              style={{ opacity: mode === "gradcam" ? opacity / 100 : 0 }}
+            />
+          ) : null}
+        </div>
+      )}
     </section>
+  )
+}
+
+function ImageFrame({ src, alt, label }: { src: string; alt: string; label: string }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-background">
+      <div className="border-b border-border bg-secondary px-3 py-2 font-mono text-xs text-muted-foreground">
+        {label}
+      </div>
+      <div className="aspect-square">
+        <img
+          src={src}
+          alt={alt}
+          className="size-full object-contain"
+        />
+      </div>
+    </div>
   )
 }

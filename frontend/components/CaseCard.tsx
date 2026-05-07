@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { formatCaseCode } from "@/lib/cases"
 import type { Case, ReviewStatus } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
@@ -42,6 +43,9 @@ export function CaseCard({ case: cellCase }: CaseCardProps) {
             </span>
           </div>
           <div className="flex flex-col gap-1">
+            <p className="font-mono text-sm font-semibold text-foreground">
+              {formatCaseCode(cellCase.id)}
+            </p>
             <p className="font-mono text-xs text-muted-foreground">
               {formatCaseDate(cellCase.created_at)}
             </p>
@@ -49,6 +53,9 @@ export function CaseCard({ case: cellCase }: CaseCardProps) {
               <p className="truncate text-sm text-muted-foreground">
                 Patient Ref: {cellCase.patient_ref}
               </p>
+            ) : null}
+            {cellCase.slide_id ? (
+              <p className="truncate text-xs text-muted-foreground">Slide: {cellCase.slide_id}</p>
             ) : null}
           </div>
         </CardContent>

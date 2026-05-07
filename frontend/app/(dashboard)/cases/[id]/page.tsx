@@ -2,18 +2,23 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { RefreshCw } from "lucide-react"
+import { ArrowLeft, Clock3, Download, FileText, RefreshCw, RotateCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { formatCaseDate } from "@/components/CaseCard"
 import { GradCAMViewer } from "@/components/GradCAMViewer"
-import { PredictionBadge } from "@/components/PredictionBadge"
+import { getConfidenceBand, PredictionBadge } from "@/components/PredictionBadge"
 import { ReviewPanel } from "@/components/ReviewPanel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { runPrediction } from "@/lib/api"
-import { CURRENT_DIAGNOSTIC_VERSION, getCase, updateCasePrediction } from "@/lib/cases"
+import {
+  CURRENT_DIAGNOSTIC_VERSION,
+  formatCaseCode,
+  getCase,
+  updateCasePrediction,
+} from "@/lib/cases"
 import { getReviewerName } from "@/lib/reviewer"
 import type { Case, ReviewStatus } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -90,16 +95,46 @@ export default function CaseDetailPage({ params }: CaseDetailPageProps) {
   }
 
   const isInfected = cellCase.prediction === "infected"
+  const needsReview = getConfidenceBand(cellCase.confidence) === "needs_review"
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2">
-        <Button asChild variant="link" className="w-fit px-0">
-          <Link href="/cases">Back to cases</Link>
-        </Button>
-        <h1 className="font-mono text-3xl font-semibold tracking-normal text-foreground">
-          Case Detail
-        </h1>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-2">
+          <Button asChild variant="link" className="w-fit px-0">
+            <Link href="/cases">
+              <ArrowLeft className="size-4" />
+              Back to cases
+            </Link>
+          </Button>
+          <div>
+            <h1 className="font-mono text-3xl font-semibold tracking-normal text-foreground">
+              {formatCaseCode(cellCase.id)}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Diagnostic review packet
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => recheckPrediction(cellCase)}
+            disabled={isRechecking}
+          >
+            {isRechecking ? (
+              <RefreshCw className="size-4 animate-spin" />
+            ) : (
+              <RotateCw className="size-4" />
+            )}
+            Re-run diagnosis
+          </Button>
+          <Button type="button" variant="outline" onClick={() => exportReport(cellCase)}>
+            <Download className="size-4" />
+            Export report
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
@@ -121,6 +156,10 @@ export default function CaseDetailPage({ params }: CaseDetailPageProps) {
                   <p className="text-sm text-foreground">{cellCase.patient_ref}</p>
                 </div>
               ) : null}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <InfoLine label="Slide ID" value={cellCase.slide_id || "Not provided"} />
+                <InfoLine label="Image source" value={cellCase.image_source || "Not provided"} />
+              </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 <PredictionBadge
@@ -153,8 +192,17 @@ export default function CaseDetailPage({ params }: CaseDetailPageProps) {
                 </div>
                 <Progress
                   value={cellCase.confidence}
-                  indicatorClassName={isInfected ? "bg-red-500" : "bg-green-500"}
+                  indicatorClassName={
+                    needsReview ? "bg-amber-500" : isInfected ? "bg-red-500" : "bg-green-500"
+                  }
                 />
+              </div>
+
+              <div className="rounded-lg border border-border bg-secondary/40 p-3">
+                <p className="text-sm font-medium text-foreground">Confidence explanation</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {getConfidenceExplanation(cellCase)}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -193,10 +241,102 @@ export default function CaseDetailPage({ params }: CaseDetailPageProps) {
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-4">
+                <CardTitle>Review History</CardTitle>
+                <Clock3 className="text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ol className="flex flex-col gap-3">
+                <HistoryItem
+                  title="Case created"
+                  detail={formatCaseDate(cellCase.created_at)}
+                />
+                <HistoryItem
+                  title="Model inference completed"
+                  detail={`${cellCase.diagnostic_version || "legacy model"} · ${cellCase.prediction} ${cellCase.confidence.toFixed(1)}%`}
+                />
+                <HistoryItem
+                  title={
+                    cellCase.review_status === "pending"
+                      ? "Awaiting reviewer decision"
+                      : `Case ${cellCase.review_status}`
+                  }
+                  detail={
+                    cellCase.reviewed_at
+                      ? formatCaseDate(cellCase.reviewed_at)
+                      : "Pending clinical validation"
+                  }
+                />
+              </ol>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
   )
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-secondary/40 p-3">
+      <p className="font-mono text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-sm text-foreground">{value}</p>
+    </div>
+  )
+}
+
+function HistoryItem({ title, detail }: { title: string; detail: string }) {
+  return (
+    <li className="flex gap-3">
+      <span className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-secondary">
+        <FileText className="size-3.5 text-primary" />
+      </span>
+      <div>
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{detail}</p>
+      </div>
+    </li>
+  )
+}
+
+function getConfidenceExplanation(cellCase: Case) {
+  if (cellCase.confidence < 70) {
+    return "Low-confidence result. Manual review is recommended before accepting or rejecting this prediction."
+  }
+
+  if (cellCase.prediction === "infected") {
+    return "The model detected parasite-like stained inclusion patterns and localized attention in the cell image."
+  }
+
+  return "The model did not detect a strong parasite-like stain cluster in this red blood cell image."
+}
+
+function exportReport(cellCase: Case) {
+  const lines = [
+    "CellScan diagnostic report",
+    `Case: ${formatCaseCode(cellCase.id)}`,
+    `Patient reference: ${cellCase.patient_ref || "Not provided"}`,
+    `Slide ID: ${cellCase.slide_id || "Not provided"}`,
+    `Image source: ${cellCase.image_source || "Not provided"}`,
+    `Prediction: ${cellCase.prediction}`,
+    `Confidence: ${cellCase.confidence.toFixed(1)}%`,
+    `Review status: ${cellCase.review_status}`,
+    `Reviewer note: ${cellCase.reviewer_note || "None"}`,
+    `Submitted: ${formatCaseDate(cellCase.created_at)}`,
+    `Reviewed: ${cellCase.reviewed_at ? formatCaseDate(cellCase.reviewed_at) : "Pending"}`,
+    `Diagnostic version: ${cellCase.diagnostic_version || "legacy model"}`,
+  ]
+  const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = `${formatCaseCode(cellCase.id)}-report.txt`
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 async function imageUrlToFile(imageUrl: string) {

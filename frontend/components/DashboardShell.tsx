@@ -15,7 +15,7 @@ import {
   UploadCloud,
 } from "lucide-react"
 
-import { CURRENT_DIAGNOSTIC_VERSION, getCases } from "@/lib/cases"
+import { CURRENT_DIAGNOSTIC_VERSION, formatCaseCode, getCases } from "@/lib/cases"
 import type { Case } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
@@ -156,19 +156,23 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
                     <span
                       className={cn(
                         "rounded-full border px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-normal",
-                        sidebarStats.latest.prediction === "infected"
+                        sidebarStats.latest.confidence < 70
+                          ? "border-amber-300/40 bg-amber-500/15 text-amber-700 dark:text-amber-200"
+                          : sidebarStats.latest.prediction === "infected"
                           ? "border-red-300/40 bg-red-500/15 text-red-700 dark:text-red-200"
                           : "border-emerald-300/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-200",
                       )}
                     >
-                      {sidebarStats.latest.prediction}
+                      {sidebarStats.latest.confidence < 70
+                        ? "needs review"
+                        : sidebarStats.latest.prediction}
                     </span>
                     <span className="font-mono text-xs text-foreground">
                       {sidebarStats.latest.confidence.toFixed(1)}%
                     </span>
                   </div>
                   <p className="truncate text-xs text-muted-foreground">
-                    {sidebarStats.latest.patient_ref || "Unassigned patient"}
+                    {sidebarStats.latest.patient_ref || formatCaseCode(sidebarStats.latest.id)}
                   </p>
                 </Link>
               ) : (

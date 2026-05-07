@@ -33,9 +33,15 @@ export function getCase(caseId: string) {
   return getCases().find((cellCase) => cellCase.id === caseId) || null
 }
 
+export function formatCaseCode(caseId: string) {
+  return `CASE-${caseId.replaceAll("-", "").slice(0, 6).toUpperCase()}`
+}
+
 export function createCase(input: {
   reviewerId: string
   patientRef: string | null
+  slideId?: string | null
+  imageSource?: string | null
   imageUrl: string
   gradcamUrl: string | null
   predictionResult: PredictionResult
@@ -45,6 +51,8 @@ export function createCase(input: {
     id: crypto.randomUUID(),
     reviewer_id: input.reviewerId,
     patient_ref: input.patientRef,
+    slide_id: input.slideId || null,
+    image_source: input.imageSource || null,
     image_url: input.imageUrl,
     gradcam_url: input.gradcamUrl,
     prediction: input.predictionResult.prediction,
@@ -109,6 +117,10 @@ export function updateCaseReview(input: {
 
   saveCases(nextCases)
   return updatedCase
+}
+
+export function clearCases() {
+  saveCases([])
 }
 
 function saveCases(cases: Case[]) {
