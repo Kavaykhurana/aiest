@@ -5,7 +5,9 @@ import type { PredictionResult } from "@/lib/types"
 
 export async function runPrediction(file: File): Promise<PredictionResult> {
   const fastApiUrl = process.env.NEXT_PUBLIC_FASTAPI_URL?.trim()
+  const useFastApi = process.env.NEXT_PUBLIC_USE_FASTAPI === "true"
   const shouldTryFastApi =
+    useFastApi &&
     fastApiUrl &&
     (typeof window === "undefined" ||
       window.location.hostname === "localhost" ||
