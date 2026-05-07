@@ -35,7 +35,8 @@ export function UploadZone({
       return
     }
 
-    const hasValidType = ACCEPTED_TYPES.has(candidate.type)
+    const normalizedType = candidate.type.toLowerCase()
+    const hasValidType = normalizedType === "" || ACCEPTED_TYPES.has(normalizedType)
     const hasValidExtension = ACCEPTED_EXTENSIONS.some((extension) =>
       candidate.name.toLowerCase().endsWith(extension),
     )

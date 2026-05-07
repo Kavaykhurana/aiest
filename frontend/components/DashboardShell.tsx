@@ -136,7 +136,7 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
               </div>
               <div className="mt-4 flex flex-col gap-2 text-xs">
                 <StatusLine label="Model active" />
-                <StatusLine label={CURRENT_DIAGNOSTIC_VERSION.replaceAll("-", " ")} />
+                <StatusLine label={CURRENT_DIAGNOSTIC_VERSION.replace(/-/g, " ")} />
               </div>
             </div>
 

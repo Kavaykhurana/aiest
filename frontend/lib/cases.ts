@@ -34,7 +34,7 @@ export function getCase(caseId: string) {
 }
 
 export function formatCaseCode(caseId: string) {
-  return `CASE-${caseId.replaceAll("-", "").slice(0, 6).toUpperCase()}`
+  return `CASE-${caseId.replace(/-/g, "").slice(0, 6).toUpperCase()}`
 }
 
 export function createCase(input: {
@@ -48,7 +48,7 @@ export function createCase(input: {
 }) {
   const now = new Date().toISOString()
   const cellCase: Case = {
-    id: crypto.randomUUID(),
+    id: createId(),
     reviewer_id: input.reviewerId,
     patient_ref: input.patientRef,
     slide_id: input.slideId || null,
@@ -126,4 +126,16 @@ export function clearCases() {
 function saveCases(cases: Case[]) {
   window.localStorage.setItem(CASES_KEY, JSON.stringify(cases))
   window.dispatchEvent(new Event("cellscan:cases-changed"))
+}
+
+function createId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID()
+  }
+
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (token) => {
+    const random = Math.floor(Math.random() * 16)
+    const value = token === "x" ? random : (random & 0x3) | 0x8
+    return value.toString(16)
+  })
 }

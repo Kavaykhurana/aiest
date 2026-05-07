@@ -330,12 +330,14 @@ function exportReport(cellCase: Case) {
     `Reviewed: ${cellCase.reviewed_at ? formatCaseDate(cellCase.reviewed_at) : "Pending"}`,
     `Diagnostic version: ${cellCase.diagnostic_version || "legacy model"}`,
   ]
-  const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" })
+  const blob = new Blob([lines.join("\r\n")], { type: "text/plain;charset=utf-8" })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
   anchor.href = url
   anchor.download = `${formatCaseCode(cellCase.id)}-report.txt`
+  document.body.appendChild(anchor)
   anchor.click()
+  anchor.remove()
   URL.revokeObjectURL(url)
 }
 
