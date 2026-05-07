@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { CheckCircle2, Loader2, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
+import { updateCaseReview } from "@/lib/cases"
 import type { ReviewStatus } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,7 +15,6 @@ interface ReviewPanelProps {
 }
 
 export function ReviewPanel({ caseId, onReviewed }: ReviewPanelProps) {
-  const router = useRouter()
   const [noteText, setNoteText] = useState("")
   const [submitting, setSubmitting] = useState<ReviewStatus | null>(null)
 
@@ -23,26 +22,19 @@ export function ReviewPanel({ caseId, onReviewed }: ReviewPanelProps) {
     setSubmitting(status)
 
     try {
-      const response = await fetch(`/api/cases/${caseId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          review_status: status,
-          reviewer_note: noteText.trim() || null,
-          reviewed_at: new Date().toISOString(),
-        }),
+      const updatedCase = updateCaseReview({
+        caseId,
+        reviewStatus: status,
+        reviewerNote: noteText.trim() || null,
+        reviewedAt: new Date().toISOString(),
       })
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null)
-        throw new Error(payload?.error || "Failed to update case.")
+      if (!updatedCase) {
+        throw new Error("Case not found.")
       }
 
       toast.success(`Case marked as ${status}`)
       onReviewed?.()
-      router.refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update case.")
     } finally {

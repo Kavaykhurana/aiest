@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import axios from "axios"
 import { toast } from "sonner"
 
 import { runPrediction } from "@/lib/api"
+import { createCase } from "@/lib/cases"
 import { getReviewerId } from "@/lib/reviewer"
-import { createClient } from "@/lib/supabase/client"
-import { hasSupabaseEnv } from "@/lib/supabase/env"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -43,86 +41,21 @@ export default function UploadPage() {
     setIsAnalyzing(true)
 
     try {
-      if (!hasSupabaseEnv()) {
-        toast.error("Supabase is not configured.")
-        return
-      }
-
-      const supabase = createClient()
       const predictionResult = await runPrediction(file)
-      const timestamp = Date.now()
-      const originalPath = `originals/${timestamp}_${sanitizeFilename(file.name)}`
-
-      const { error: originalUploadError } = await supabase.storage
-        .from("cell-images")
-        .upload(originalPath, file, {
-          contentType: file.type,
-          upsert: false,
-        })
-
-      if (originalUploadError) {
-        toast.error("Failed to save image.")
-        return
-      }
-
-      const {
-        data: { publicUrl: imageUrl },
-      } = supabase.storage.from("cell-images").getPublicUrl(originalPath)
-
-      let gradcamUrl: string | null = null
-      const gradcamBlob = decodeGradcam(predictionResult.gradcam_base64)
-
-      if (gradcamBlob) {
-        const gradcamPath = `gradcam/${timestamp}_gradcam.png`
-        const { error: gradcamUploadError } = await supabase.storage
-          .from("cell-images")
-          .upload(gradcamPath, gradcamBlob, {
-            contentType: "image/png",
-            upsert: false,
-          })
-
-        if (gradcamUploadError) {
-          toast.error("Failed to save image.")
-          return
-        }
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("cell-images").getPublicUrl(gradcamPath)
-        gradcamUrl = publicUrl
-      }
-
-      const { data: newCase, error: insertError } = await supabase
-        .from("cases")
-        .insert({
-          reviewer_id: getReviewerId(),
-          patient_ref: patientRef.trim() || null,
-          image_url: imageUrl,
-          gradcam_url: gradcamUrl,
-          prediction: predictionResult.prediction,
-          confidence: predictionResult.confidence,
-        })
-        .select("id")
-        .single()
-
-      if (insertError || !newCase) {
-        console.error(insertError)
-        toast.error("Failed to save case. Please try again.")
-        return
-      }
-
+      const imageUrl = await fileToDataUrl(file)
+      const gradcamUrl = predictionResult.gradcam_base64
+        ? `data:image/png;base64,${predictionResult.gradcam_base64}`
+        : null
+      const newCase = createCase({
+        reviewerId: getReviewerId(),
+        patientRef: patientRef.trim() || null,
+        imageUrl,
+        gradcamUrl,
+        predictionResult,
+      })
+      toast.success("Case saved locally.")
       router.push(`/cases/${newCase.id}`)
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const detail = error.response?.data?.detail
-        if (detail) {
-          toast.error(String(detail))
-          return
-        }
-        toast.error("Diagnostic service unavailable. Please try again.")
-        return
-      }
-
       toast.error(error instanceof Error ? error.message : "Diagnostic service unavailable. Please try again.")
     } finally {
       setIsAnalyzing(false)
@@ -171,21 +104,11 @@ export default function UploadPage() {
   )
 }
 
-function sanitizeFilename(filename: string) {
-  return filename.replace(/[^a-zA-Z0-9._-]/g, "_")
-}
-
-function decodeGradcam(gradcamBase64: string) {
-  if (!gradcamBase64) {
-    return null
-  }
-
-  try {
-    const bytes = atob(gradcamBase64)
-    const arr = new Uint8Array(bytes.length).map((_, i) => bytes.charCodeAt(i))
-    return new Blob([arr], { type: "image/png" })
-  } catch (error) {
-    console.warn("Malformed Grad-CAM response. Creating case without heatmap.", error)
-    return null
-  }
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error("Failed to read image."))
+    reader.readAsDataURL(file)
+  })
 }

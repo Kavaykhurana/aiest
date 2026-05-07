@@ -3,12 +3,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Microscope } from "lucide-react"
-import { toast } from "sonner"
 
-import { getReviewerId } from "@/lib/reviewer"
+import { getCases } from "@/lib/cases"
 import type { Case, Prediction, ReviewStatus } from "@/lib/types"
-import { createClient } from "@/lib/supabase/client"
-import { hasSupabaseEnv } from "@/lib/supabase/env"
 import { cn } from "@/lib/utils"
 import { CaseCard } from "@/components/CaseCard"
 import { Button } from "@/components/ui/button"
@@ -49,40 +46,8 @@ export default function CasesPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true
-
-    async function loadCases() {
-      if (!hasSupabaseEnv()) {
-        setIsLoading(false)
-        return
-      }
-
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from("cases")
-        .select("*")
-        .eq("reviewer_id", getReviewerId())
-        .order("created_at", { ascending: false })
-
-      if (!mounted) {
-        return
-      }
-
-      if (error) {
-        toast.error("Failed to load cases.")
-        setIsLoading(false)
-        return
-      }
-
-      setCases(normalizeCases(data))
-      setIsLoading(false)
-    }
-
-    loadCases()
-
-    return () => {
-      mounted = false
-    }
+    setCases(getCases())
+    setIsLoading(false)
   }, [])
 
   useEffect(() => {
@@ -198,15 +163,4 @@ export default function CasesPage() {
       )}
     </div>
   )
-}
-
-function normalizeCases(data: unknown): Case[] {
-  if (!Array.isArray(data)) {
-    return []
-  }
-
-  return data.map((row) => ({
-    ...(row as Case),
-    confidence: Number((row as Case).confidence),
-  }))
 }

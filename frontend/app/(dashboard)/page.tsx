@@ -1,32 +1,17 @@
+"use client"
+
+import { useEffect, useState } from "react"
+
 import { StatsGrid, type DashboardStats } from "@/components/StatsGrid"
-import { Card, CardContent } from "@/components/ui/card"
-import { getReviewerId } from "@/lib/reviewer"
+import { getCases } from "@/lib/cases"
 import type { Case } from "@/lib/types"
-import { hasSupabaseEnv } from "@/lib/supabase/env"
-import { createClient } from "@/lib/supabase/server"
 
-export const dynamic = "force-dynamic"
+export default function DashboardPage() {
+  const [cases, setCases] = useState<Case[]>([])
 
-export default async function DashboardPage() {
-  let cases: Case[] = []
-  let setupMessage: string | null = null
-
-  if (hasSupabaseEnv()) {
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from("cases")
-      .select("*")
-      .eq("reviewer_id", getReviewerId())
-      .order("created_at", { ascending: false })
-
-    if (error) {
-      setupMessage = error.message
-    } else {
-      cases = normalizeCases(data)
-    }
-  } else {
-    setupMessage = "Supabase environment variables are not configured."
-  }
+  useEffect(() => {
+    setCases(getCases())
+  }, [])
 
   const stats: DashboardStats = {
     total: cases.length,
@@ -45,23 +30,7 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-muted-foreground">Review activity and diagnostic outcomes.</p>
       </header>
-      {setupMessage ? (
-        <Card>
-          <CardContent className="p-4 text-sm text-amber-200">{setupMessage}</CardContent>
-        </Card>
-      ) : null}
       <StatsGrid stats={stats} />
     </div>
   )
-}
-
-function normalizeCases(data: unknown): Case[] {
-  if (!Array.isArray(data)) {
-    return []
-  }
-
-  return data.map((row) => ({
-    ...(row as Case),
-    confidence: Number((row as Case).confidence),
-  }))
 }
