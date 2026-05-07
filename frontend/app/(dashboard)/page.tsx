@@ -20,7 +20,7 @@ import { getReviewerId } from "@/lib/reviewer"
 import type { Case } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PredictionBadge } from "@/components/PredictionBadge"
+import { CLINICAL_DECISION_THRESHOLD, getConfidenceBand, PredictionBadge } from "@/components/PredictionBadge"
 
 export default function DashboardPage() {
   const [cases, setCases] = useState<Case[]>([])
@@ -62,7 +62,7 @@ export default function DashboardPage() {
           predictionResult,
         })
       }
-      toast.success("Demo cases loaded.")
+      toast.success("Demo cases loaded for manual review.")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load demo cases.")
     } finally {
@@ -77,9 +77,19 @@ export default function DashboardPage() {
 
   const stats: DashboardStats = {
     total: cases.length,
-    infected: cases.filter((cellCase) => cellCase.prediction === "infected").length,
-    healthy: cases.filter((cellCase) => cellCase.prediction === "healthy").length,
-    pending: cases.filter((cellCase) => cellCase.review_status === "pending").length,
+    infected: cases.filter(
+      (cellCase) =>
+        cellCase.prediction === "infected" &&
+        getConfidenceBand(cellCase.confidence) === "confident",
+    ).length,
+    healthy: cases.filter(
+      (cellCase) =>
+        cellCase.prediction === "healthy" &&
+        getConfidenceBand(cellCase.confidence) === "confident",
+    ).length,
+    reviewRequired: cases.filter(
+      (cellCase) => getConfidenceBand(cellCase.confidence) === "needs_review",
+    ).length,
     validated: cases.filter((cellCase) => cellCase.review_status === "validated").length,
     rejected: cases.filter((cellCase) => cellCase.review_status === "rejected").length,
   }
@@ -119,7 +129,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm font-medium text-foreground">Notebook validation set</p>
               <p className="text-sm text-muted-foreground">
-                {notebookResults.workingImages.toLocaleString()} images used, {notebookResults.testImages} held out for testing
+                {notebookResults.workingImages.toLocaleString()} images used, {notebookResults.testImages} held out for testing · {CLINICAL_DECISION_THRESHOLD}% review threshold
               </p>
             </div>
           </div>
@@ -211,7 +221,7 @@ export default function DashboardPage() {
             </div>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <span className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-2 py-2 text-amber-700 dark:text-amber-200">
-                {stats.pending} pending
+                {stats.reviewRequired} review required
               </span>
               <span className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-2 py-2 text-emerald-700 dark:text-emerald-200">
                 {stats.validated} valid

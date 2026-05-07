@@ -20,6 +20,7 @@ import type { Case } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { getConfidenceBand } from "@/components/PredictionBadge"
 
 interface DashboardShellProps {
   children: ReactNode
@@ -50,7 +51,11 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
 
   const sidebarStats = useMemo(() => {
     const pending = cases.filter((cellCase) => cellCase.review_status === "pending").length
-    const infected = cases.filter((cellCase) => cellCase.prediction === "infected").length
+    const infected = cases.filter(
+      (cellCase) =>
+        cellCase.prediction === "infected" &&
+        getConfidenceBand(cellCase.confidence) === "confident",
+    ).length
     const validated = cases.filter((cellCase) => cellCase.review_status === "validated").length
     const rejected = cases.filter((cellCase) => cellCase.review_status === "rejected").length
 
@@ -116,7 +121,7 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <MetricTile label="Pending" value={sidebarStats.pending} tone="amber" />
-                <MetricTile label="Infected" value={sidebarStats.infected} tone="red" />
+                <MetricTile label="Confirmed signal" value={sidebarStats.infected} tone="red" />
               </div>
             </div>
 
@@ -156,15 +161,15 @@ export function DashboardShell({ children, fullName }: DashboardShellProps) {
                     <span
                       className={cn(
                         "rounded-full border px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-normal",
-                        sidebarStats.latest.confidence < 70
+                        getConfidenceBand(sidebarStats.latest.confidence) === "needs_review"
                           ? "border-amber-300/40 bg-amber-500/15 text-amber-700 dark:text-amber-200"
                           : sidebarStats.latest.prediction === "infected"
                           ? "border-red-300/40 bg-red-500/15 text-red-700 dark:text-red-200"
                           : "border-emerald-300/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-200",
                       )}
                     >
-                      {sidebarStats.latest.confidence < 70
-                        ? "needs review"
+                      {getConfidenceBand(sidebarStats.latest.confidence) === "needs_review"
+                        ? "review required"
                         : sidebarStats.latest.prediction}
                     </span>
                     <span className="font-mono text-xs text-foreground">

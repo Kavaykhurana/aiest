@@ -14,7 +14,7 @@ export interface DashboardStats {
   total: number
   infected: number
   healthy: number
-  pending: number
+  reviewRequired: number
   validated: number
   rejected: number
 }
@@ -33,30 +33,30 @@ export function StatsGrid({ stats }: StatsGridProps) {
       accentClassName: "border-l-blue-500",
     },
     {
-      label: "Infected",
+      label: "Infected Finding",
       value: stats.infected,
-      subLabel: `${percentage(stats.infected, stats.total)}% of total`,
+      subLabel: `${percentage(stats.infected, stats.total)}% high-confidence`,
       icon: ShieldAlert,
       accentClassName: "border-l-red-500",
     },
     {
-      label: "Healthy",
+      label: "Healthy Finding",
       value: stats.healthy,
-      subLabel: `${percentage(stats.healthy, stats.total)}% of total`,
+      subLabel: `${percentage(stats.healthy, stats.total)}% high-confidence`,
       icon: HeartPulse,
       accentClassName: "border-l-green-500",
     },
     {
-      label: "Pending Review",
-      value: stats.pending,
-      subLabel: "Awaiting validation",
+      label: "Review Required",
+      value: stats.reviewRequired,
+      subLabel: "Below decision threshold",
       icon: Clock3,
       accentClassName: "border-l-amber-500",
     },
     {
       label: "Validated",
       value: stats.validated,
-      subLabel: "Accepted predictions",
+      subLabel: "Clinician confirmed",
       icon: CheckCircle2,
       accentClassName: "border-l-emerald-500",
     },

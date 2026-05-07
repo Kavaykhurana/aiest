@@ -19,9 +19,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { getConfidenceBand } from "@/components/PredictionBadge"
 
 type StatusFilter = "all" | ReviewStatus
-type PredictionFilter = "all" | Prediction
+type PredictionFilter = "all" | Prediction | "review_required"
 type SortMode = "newest" | "oldest" | "confidence"
 
 const statusFilters: Array<{ label: string; value: StatusFilter }> = [
@@ -32,9 +33,10 @@ const statusFilters: Array<{ label: string; value: StatusFilter }> = [
 ]
 
 const predictionFilters: Array<{ label: string; value: PredictionFilter }> = [
-  { label: "All Predictions", value: "all" },
-  { label: "Healthy", value: "healthy" },
-  { label: "Infected", value: "infected" },
+  { label: "All Cases", value: "all" },
+  { label: "Review Required", value: "review_required" },
+  { label: "Healthy Finding", value: "healthy" },
+  { label: "Infected Finding", value: "infected" },
 ]
 
 export default function CasesPage() {
@@ -56,7 +58,12 @@ export default function CasesPage() {
         statusFilter === "all" ? true : cellCase.review_status === statusFilter,
       )
       .filter((cellCase) =>
-        predictionFilter === "all" ? true : cellCase.prediction === predictionFilter,
+        predictionFilter === "all"
+          ? true
+          : predictionFilter === "review_required"
+          ? getConfidenceBand(cellCase.confidence) === "needs_review"
+          : cellCase.prediction === predictionFilter &&
+            getConfidenceBand(cellCase.confidence) === "confident",
       )
       .sort((a, b) => {
         if (sortMode === "oldest") {
@@ -77,7 +84,9 @@ export default function CasesPage() {
         <h1 className="font-mono text-3xl font-semibold tracking-normal text-foreground">
           My Cases
         </h1>
-        <p className="text-muted-foreground">Filter, sort, and review submitted diagnostics.</p>
+        <p className="text-muted-foreground">
+          Filter, sort, and review model findings before any clinical decision.
+        </p>
       </header>
 
       <Card className="flex flex-col gap-4 p-4">

@@ -7,7 +7,11 @@ import { toast } from "sonner"
 
 import { formatCaseDate } from "@/components/CaseCard"
 import { GradCAMViewer } from "@/components/GradCAMViewer"
-import { getConfidenceBand, PredictionBadge } from "@/components/PredictionBadge"
+import {
+  CLINICAL_DECISION_THRESHOLD,
+  getConfidenceBand,
+  PredictionBadge,
+} from "@/components/PredictionBadge"
 import { ReviewPanel } from "@/components/ReviewPanel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -112,7 +116,7 @@ export default function CaseDetailPage({ params }: CaseDetailPageProps) {
               {formatCaseCode(cellCase.id)}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Diagnostic review packet
+              Diagnostic review packet · clinician validation required
             </p>
           </div>
         </div>
@@ -203,6 +207,10 @@ export default function CaseDetailPage({ params }: CaseDetailPageProps) {
                 <p className="mt-1 text-sm text-muted-foreground">
                   {getConfidenceExplanation(cellCase)}
                 </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Decision threshold: {CLINICAL_DECISION_THRESHOLD}% confidence. Results below
+                  this level are not shown as final healthy/infected calls.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -219,7 +227,12 @@ export default function CaseDetailPage({ params }: CaseDetailPageProps) {
           </Card>
 
           {cellCase.review_status === "pending" ? (
-            <ReviewPanel caseId={cellCase.id} onReviewed={() => setCellCase(getCase(params.id))} />
+            <ReviewPanel
+              caseId={cellCase.id}
+              confidence={cellCase.confidence}
+              prediction={cellCase.prediction}
+              onReviewed={() => setCellCase(getCase(params.id))}
+            />
           ) : (
             <Card>
               <CardHeader>
@@ -304,15 +317,15 @@ function HistoryItem({ title, detail }: { title: string; detail: string }) {
 }
 
 function getConfidenceExplanation(cellCase: Case) {
-  if (cellCase.confidence < 70) {
-    return "Low-confidence result. Manual review is recommended before accepting or rejecting this prediction."
+  if (getConfidenceBand(cellCase.confidence) === "needs_review") {
+    return `The model did not clear the ${CLINICAL_DECISION_THRESHOLD}% decision threshold. Treat this as a review-required signal, not a final diagnosis.`
   }
 
   if (cellCase.prediction === "infected") {
-    return "The model detected parasite-like stained inclusion patterns and localized attention in the cell image."
+    return "The model produced a high-confidence infected finding, but clinician validation is still required before use."
   }
 
-  return "The model did not detect a strong parasite-like stain cluster in this red blood cell image."
+  return "The model produced a high-confidence healthy finding, but clinician validation is still required before use."
 }
 
 function exportReport(cellCase: Case) {
@@ -322,8 +335,13 @@ function exportReport(cellCase: Case) {
     `Patient reference: ${cellCase.patient_ref || "Not provided"}`,
     `Slide ID: ${cellCase.slide_id || "Not provided"}`,
     `Image source: ${cellCase.image_source || "Not provided"}`,
-    `Prediction: ${cellCase.prediction}`,
+    `Model finding: ${
+      getConfidenceBand(cellCase.confidence) === "needs_review"
+        ? "Review required"
+        : cellCase.prediction
+    }`,
     `Confidence: ${cellCase.confidence.toFixed(1)}%`,
+    `Decision threshold: ${CLINICAL_DECISION_THRESHOLD}%`,
     `Review status: ${cellCase.review_status}`,
     `Reviewer note: ${cellCase.reviewer_note || "None"}`,
     `Submitted: ${formatCaseDate(cellCase.created_at)}`,

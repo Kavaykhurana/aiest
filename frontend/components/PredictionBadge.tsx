@@ -8,20 +8,22 @@ interface PredictionBadgeProps {
   size?: "default" | "large"
 }
 
+export const CLINICAL_DECISION_THRESHOLD = 90
+
 export function PredictionBadge({
   prediction,
   confidence,
   size = "default",
 }: PredictionBadgeProps) {
   const isInfected = prediction === "infected"
-  const isLowConfidence = confidence < 70
-  const label = isLowConfidence ? "NEEDS REVIEW" : prediction.toUpperCase()
+  const needsReview = getConfidenceBand(confidence) === "needs_review"
+  const label = needsReview ? "REVIEW REQUIRED" : prediction.toUpperCase()
 
   return (
     <Badge
       className={cn(
         "gap-2 border font-mono tracking-normal",
-        isLowConfidence
+        needsReview
           ? "border-amber-200 bg-amber-100 text-amber-800"
           : isInfected
           ? "border-red-200 bg-red-100 text-red-700"
@@ -37,7 +39,7 @@ export function PredictionBadge({
 }
 
 export function getConfidenceBand(confidence: number) {
-  if (confidence < 70) {
+  if (confidence < CLINICAL_DECISION_THRESHOLD) {
     return "needs_review"
   }
 

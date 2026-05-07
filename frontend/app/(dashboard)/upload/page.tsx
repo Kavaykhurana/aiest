@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { getConfidenceBand } from "@/components/PredictionBadge"
 import { UploadZone } from "@/components/UploadZone"
 
 export default function UploadPage() {
@@ -74,7 +75,11 @@ export default function UploadPage() {
         gradcamUrl,
         predictionResult,
       })
-      toast.success("Case saved locally.")
+      toast.success(
+        getConfidenceBand(predictionResult.confidence) === "needs_review"
+          ? "Case saved for manual review."
+          : "High-confidence case saved for review.",
+      )
       router.push(`/cases/${newCase.id}`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Diagnostic service unavailable. Please try again.")

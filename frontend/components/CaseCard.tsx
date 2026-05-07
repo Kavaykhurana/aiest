@@ -4,7 +4,7 @@ import { formatCaseCode } from "@/lib/cases"
 import type { Case, ReviewStatus } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
-import { PredictionBadge } from "@/components/PredictionBadge"
+import { getConfidenceBand, PredictionBadge } from "@/components/PredictionBadge"
 
 interface CaseCardProps {
   case: Case
@@ -56,6 +56,11 @@ export function CaseCard({ case: cellCase }: CaseCardProps) {
             ) : null}
             {cellCase.slide_id ? (
               <p className="truncate text-xs text-muted-foreground">Slide: {cellCase.slide_id}</p>
+            ) : null}
+            {getConfidenceBand(cellCase.confidence) === "needs_review" ? (
+              <p className="text-xs text-amber-700 dark:text-amber-200">
+                Model signal: {cellCase.prediction}. Manual confirmation required.
+              </p>
             ) : null}
           </div>
         </CardContent>
