@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { RefreshCw } from "lucide-react"
+import { toast } from "sonner"
 
 import { formatCaseDate } from "@/components/CaseCard"
 import { GradCAMViewer } from "@/components/GradCAMViewer"
@@ -10,7 +12,8 @@ import { ReviewPanel } from "@/components/ReviewPanel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { getCase } from "@/lib/cases"
+import { runPrediction } from "@/lib/api"
+import { CURRENT_DIAGNOSTIC_VERSION, getCase, updateCasePrediction } from "@/lib/cases"
 import { getReviewerName } from "@/lib/reviewer"
 import type { Case, ReviewStatus } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -30,11 +33,53 @@ interface CaseDetailPageProps {
 export default function CaseDetailPage({ params }: CaseDetailPageProps) {
   const [cellCase, setCellCase] = useState<Case | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isRechecking, setIsRechecking] = useState(false)
 
   useEffect(() => {
-    setCellCase(getCase(params.id))
+    const storedCase = getCase(params.id)
+    setCellCase(storedCase)
     setIsLoading(false)
+    if (
+      storedCase &&
+      storedCase.review_status === "pending" &&
+      storedCase.diagnostic_version !== CURRENT_DIAGNOSTIC_VERSION
+    ) {
+      recheckPrediction(storedCase)
+    }
   }, [params.id])
+
+  async function recheckPrediction(caseToUpdate: Case) {
+    setIsRechecking(true)
+
+    try {
+      const file = await imageUrlToFile(caseToUpdate.image_url)
+      const predictionResult = await runPrediction(file)
+      const gradcamUrl = predictionResult.gradcam_base64
+        ? `data:image/png;base64,${predictionResult.gradcam_base64}`
+        : caseToUpdate.gradcam_url
+
+      const updatedCase = updateCasePrediction({
+        caseId: caseToUpdate.id,
+        predictionResult,
+        gradcamUrl,
+        diagnosticVersion: CURRENT_DIAGNOSTIC_VERSION,
+      })
+
+      if (updatedCase) {
+        setCellCase(updatedCase)
+        if (
+          updatedCase.prediction !== caseToUpdate.prediction ||
+          Math.abs(updatedCase.confidence - caseToUpdate.confidence) >= 0.5
+        ) {
+          toast.success("Prediction refreshed with the calibrated model.")
+        }
+      }
+    } catch {
+      toast.error("Could not refresh this saved prediction.")
+    } finally {
+      setIsRechecking(false)
+    }
+  }
 
   if (isLoading) {
     return null
@@ -91,6 +136,12 @@ export default function CaseDetailPage({ params }: CaseDetailPageProps) {
                 >
                   {cellCase.review_status.toUpperCase()}
                 </span>
+                {isRechecking ? (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-blue-300/40 bg-blue-500/15 px-3 py-1.5 font-mono text-xs font-semibold tracking-normal text-blue-200">
+                    <RefreshCw className="size-3 animate-spin" />
+                    RECALIBRATING
+                  </span>
+                ) : null}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -146,6 +197,16 @@ export default function CaseDetailPage({ params }: CaseDetailPageProps) {
       </div>
     </div>
   )
+}
+
+async function imageUrlToFile(imageUrl: string) {
+  const response = await fetch(imageUrl)
+  if (!response.ok) {
+    throw new Error("Stored case image could not be read.")
+  }
+
+  const blob = await response.blob()
+  return new File([blob], "stored-rbc-image.png", { type: blob.type || "image/png" })
 }
 
 function CaseNotFound() {

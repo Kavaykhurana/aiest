@@ -13,6 +13,7 @@ export interface Case {
   reviewer_note: string | null
   reviewed_at: string | null
   created_at: string
+  diagnostic_version?: string | null
 }
 
 export interface PredictionResult {

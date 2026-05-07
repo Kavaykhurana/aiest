@@ -1,6 +1,7 @@
 import type { Case, PredictionResult, ReviewStatus } from "@/lib/types"
 
 const CASES_KEY = "cellscan_cases_v1"
+export const CURRENT_DIAGNOSTIC_VERSION = "browser-cnn-calibrated-v2"
 
 export function getCases(): Case[] {
   if (typeof window === "undefined") {
@@ -21,6 +22,7 @@ export function getCases(): Case[] {
     return cases.map((cellCase) => ({
       ...cellCase,
       confidence: Number(cellCase.confidence),
+      diagnostic_version: cellCase.diagnostic_version || null,
     }))
   } catch {
     return []
@@ -51,10 +53,37 @@ export function createCase(input: {
     reviewer_note: null,
     reviewed_at: null,
     created_at: now,
+    diagnostic_version: CURRENT_DIAGNOSTIC_VERSION,
   }
 
   saveCases([cellCase, ...getCases()])
   return cellCase
+}
+
+export function updateCasePrediction(input: {
+  caseId: string
+  predictionResult: PredictionResult
+  gradcamUrl: string | null
+  diagnosticVersion: string
+}): Case | null {
+  let updatedCase: Case | null = null
+  const nextCases = getCases().map((cellCase) => {
+    if (cellCase.id !== input.caseId) {
+      return cellCase
+    }
+
+    updatedCase = {
+      ...cellCase,
+      prediction: input.predictionResult.prediction,
+      confidence: input.predictionResult.confidence,
+      gradcam_url: input.gradcamUrl,
+      diagnostic_version: input.diagnosticVersion,
+    }
+    return updatedCase
+  })
+
+  saveCases(nextCases)
+  return updatedCase
 }
 
 export function updateCaseReview(input: {

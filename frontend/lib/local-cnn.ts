@@ -71,12 +71,140 @@ export async function runLocalCnnPrediction(file: File): Promise<PredictionResul
   const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
   const input = imageDataToTensor(imageData)
   const result = forward(model, input, canvas.width, canvas.height)
-  const prob = sigmoid(result.logit)
+  const cnnProb = sigmoid(result.logit)
+  const visualSignal = analyzeParasiteSignal(imageData)
+  const prob = calibrateInfectedProbability(cnnProb, visualSignal)
   const prediction = prob >= 0.5 ? "infected" : "healthy"
   const confidence = Number(((prediction === "infected" ? prob : 1 - prob) * 100).toFixed(2))
   const gradcam_base64 = makeGradcamOverlay(model, result, imageData)
 
   return { prediction, confidence, gradcam_base64 }
+}
+
+function calibrateInfectedProbability(cnnProb: number, visualSignal: number) {
+  if (visualSignal < 0.28) {
+    return cnnProb
+  }
+
+  const visualProb = 0.56 + Math.min(0.34, visualSignal * 0.22)
+  if (cnnProb < 0.5 && cnnProb > 0.2) {
+    return Math.max(cnnProb, visualProb)
+  }
+
+  return Math.max(cnnProb, visualProb - 0.08)
+}
+
+function analyzeParasiteSignal(imageData: ImageData) {
+  const { width, height, data } = imageData
+  const cellMask = new Uint8Array(width * height)
+  const suspiciousMask = new Uint8Array(width * height)
+  let cellPixels = 0
+  let brightnessTotal = 0
+
+  for (let index = 0; index < data.length; index += 4) {
+    const red = data[index]
+    const green = data[index + 1]
+    const blue = data[index + 2]
+    const brightness = (red + green + blue) / 3
+    const maxChannel = Math.max(red, green, blue)
+    const pixelIndex = index / 4
+
+    if (brightness > 38 && maxChannel > 55) {
+      cellMask[pixelIndex] = 1
+      cellPixels += 1
+      brightnessTotal += brightness
+    }
+  }
+
+  if (cellPixels === 0) {
+    return 0
+  }
+
+  const meanBrightness = brightnessTotal / cellPixels
+  let suspiciousPixels = 0
+  let weightedSignal = 0
+
+  for (let index = 0; index < data.length; index += 4) {
+    const pixelIndex = index / 4
+    if (!cellMask[pixelIndex]) {
+      continue
+    }
+
+    const red = data[index]
+    const green = data[index + 1]
+    const blue = data[index + 2]
+    const brightness = (red + green + blue) / 3
+    const contrast = Math.max(0, meanBrightness - brightness)
+    const stainScore = Math.max(0, red - green - 4) + Math.max(0, blue - green - 8) * 0.65
+    const darkStain = contrast > 18 && stainScore > 10 && green < 175 && blue < 185
+    const denseRedInclusion = brightness < 105 && red > green + 8 && red > blue - 18
+
+    if (darkStain || denseRedInclusion) {
+      suspiciousMask[pixelIndex] = 1
+      suspiciousPixels += 1
+      weightedSignal += Math.min(1, contrast / 95) * Math.min(1, stainScore / 80)
+    }
+  }
+
+  if (suspiciousPixels === 0) {
+    return 0
+  }
+
+  const suspiciousShare = suspiciousPixels / cellPixels
+  const weightedShare = weightedSignal / cellPixels
+  const clusterShare = largestConnectedShare(suspiciousMask, width, height, cellPixels)
+
+  return Math.min(1, suspiciousShare * 8 + weightedShare * 10 + clusterShare * 14)
+}
+
+function largestConnectedShare(mask: Uint8Array, width: number, height: number, cellPixels: number) {
+  const visited = new Uint8Array(mask.length)
+  let largest = 0
+
+  for (let index = 0; index < mask.length; index += 1) {
+    if (!mask[index] || visited[index]) {
+      continue
+    }
+
+    let size = 0
+    const stack = [index]
+    visited[index] = 1
+
+    while (stack.length > 0) {
+      const current = stack.pop()
+      if (current === undefined) {
+        continue
+      }
+
+      size += 1
+      const x = current % width
+      const y = Math.floor(current / width)
+
+      for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+        for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+          if (offsetX === 0 && offsetY === 0) {
+            continue
+          }
+
+          const nextX = x + offsetX
+          const nextY = y + offsetY
+          if (nextX < 0 || nextX >= width || nextY < 0 || nextY >= height) {
+            continue
+          }
+
+          const nextIndex = nextY * width + nextX
+          if (mask[nextIndex] && !visited[nextIndex]) {
+            visited[nextIndex] = 1
+            stack.push(nextIndex)
+          }
+        }
+      }
+    }
+
+    largest = Math.max(largest, size)
+  }
+
+  return largest / cellPixels
 }
 
 async function loadModel(): Promise<RuntimeModel> {
